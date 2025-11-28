@@ -4,3 +4,6 @@ gunicorn
 requests
 pydantic
 python-multipart
+upstash-redis
+
+
