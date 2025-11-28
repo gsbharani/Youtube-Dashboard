@@ -113,7 +113,7 @@
 
 <script>
 /* ========= CONFIG ========= */
-const API_BASE = "http://127.0.0.1:8000"; // keep backend running
+const API_BASE = window.location.origin; // keep backend running
 let currentData = []; // filtered results shown in table
 let viewsChart, likesChart, commentsChart;
 
@@ -365,3 +365,4 @@ function escapeHtml(text){ if(!text) return ""; return text.replace(/[&<>"']/g, 
 </script>
 </body>
 </html>
+
