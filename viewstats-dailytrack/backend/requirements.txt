@@ -1,6 +1,5 @@
-Flask
-Flask-CORS
+fastapi
+uvicorn
+google-api-python-client
 requests
 python-dotenv
-google-api-python-client
-gunicorn
