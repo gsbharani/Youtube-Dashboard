@@ -1,367 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>YouTube Analytics Dashboard — Export & Charts</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
-<!-- Chart.js -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Channel Analytics Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- SheetJS for Excel export -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
 <style>
-    body { font-family: 'Poppins', sans-serif; background:#f5f7fa; margin:0; padding:20px; }
-    .container { max-width:1200px; margin:0 auto; }
-    h2, h3 { text-align:center; color:#222; margin-bottom:8px; }
-    .form { background:#fff; padding:16px; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-    .form input[type="text"] { flex:1; min-width:260px; padding:10px; border-radius:6px; border:1px solid #dcdcdc; }
-    .form input[type="date"] { padding:10px; border-radius:6px; border:1px solid #dcdcdc; }
-    .form button { background:#0073ff; color:#fff; padding:10px 14px; border-radius:6px; border:none; cursor:pointer; font-weight:600; }
-    .form .small { width:140px; }
-    #loading { display:none; margin:18px 0; text-align:center; color:#0073ff; font-weight:700; }
-
-    .cards { display:flex; gap:16px; margin-top:18px; flex-wrap:wrap; }
-    .card { background:#fff; padding:14px; border-radius:10px; min-width:150px; flex:1; box-shadow:0 6px 12px rgba(0,0,0,0.04); text-align:center; }
-    .card h4 { margin:0; font-size:13px; color:#666; }
-    .card p { margin:8px 0 0 0; font-size:20px; font-weight:700; color:#0073ff; }
-
-    .charts { display:grid; grid-template-columns: 1fr; gap:16px; margin-top:20px; }
-    @media(min-width:900px){ .charts { grid-template-columns: 1fr 1fr; } }
-
-    .chart-card { background:#fff; padding:12px; border-radius:10px; box-shadow:0 6px 12px rgba(0,0,0,0.04); }
-
-    table { width:100%; border-collapse: collapse; margin-top:18px; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 6px 12px rgba(0,0,0,0.04); }
-    th, td { padding:10px 12px; border-bottom:1px solid #f0f0f0; font-size:13px; text-align:left; }
-    thead th { background:#0073ff; color:#fff; font-weight:600; }
-    tbody tr:hover { background:#fafafa; }
-
-    .controls { display:flex; gap:8px; align-items:center; }
-    .right { margin-left:auto; display:flex; gap:8px; }
-
-    .muted { color:#666; font-size:13px; }
+    body { background: #f4f6f9; font-family: Arial, sans-serif; }
+    .container { margin-top: 30px; }
+    .card { margin-top: 20px; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #007bff; color: #fff; }
+    button { margin-top: 15px; }
 </style>
 </head>
 <body>
 <div class="container">
-    <h2>YouTube Channel Analytics Dashboard</h2>
+    <h2 class="text-center">YouTube Channel Analytics Dashboard</h2>
 
-    <div class="form" role="search">
-        <input id="channelInput" type="text" placeholder="Enter channel URL, handle (@name) or channel ID (UC...)" value="https://www.youtube.com/@neerthirai" />
-        <input id="startInput" type="date" class="small" />
-        <input id="endInput" type="date" class="small" />
-        <div class="controls">
-            <button id="searchBtn" onclick="loadData()">Search</button>
-            <button id="exportBtn" onclick="exportExcel()" style="background:#22a55b;">Export to Excel</button>
-            <div class="right muted">Results: <span id="resultCount">0</span></div>
+    <div class="card">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <input type="text" id="channelUrl" class="form-control" placeholder="Enter YouTube Channel URL">
+            </div>
+            <div class="col-md-3">
+                <input type="date" id="startDate" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <input type="date" id="endDate" class="form-control">
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary" id="searchBtn">Search</button>
+            </div>
         </div>
     </div>
 
-    <div id="loading">Loading — fetching data from API…</div>
-
-    <div class="cards" aria-hidden="false">
-        <div class="card"><h4>Total Videos</h4><p id="totalVideos">0</p></div>
-        <div class="card"><h4>Total Views</h4><p id="totalViews">0</p></div>
-        <div class="card"><h4>Total Likes</h4><p id="totalLikes">0</p></div>
-        <div class="card"><h4>Total Comments</h4><p id="totalComments">0</p></div>
+    <div class="card">
+        <canvas id="viewsChart" height="150"></canvas>
+        <canvas id="likesChart" height="150"></canvas>
+        <canvas id="commentsChart" height="150"></canvas>
     </div>
 
-    <div class="charts">
-        <div class="chart-card">
-            <canvas id="viewsChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <canvas id="likesChart"></canvas>
-        </div>
-        <div class="chart-card" style="grid-column:1 / -1;">
-            <canvas id="commentsChart"></canvas>
-        </div>
+    <div class="card">
+        <button id="exportBtn" class="btn btn-success">Export to Excel</button>
+        <table id="videoTable">
+            <thead>
+                <tr>
+                    <th>Video ID</th>
+                    <th>Title</th>
+                    <th>Published</th>
+                    <th>Views</th>
+                    <th>Likes</th>
+                    <th>Comments</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
-
-    <table id="videosTable" aria-live="polite">
-        <thead>
-            <tr>
-                <th>Video ID</th>
-                <th>Title</th>
-                <th>Published</th>
-                <th>Views</th>
-                <th>Likes</th>
-                <th>Comments</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <h3>Last 7 Videos - 7-Day Daily Stats</h3>
-    <table id="historyTable">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Date</th>
-                <th>Views</th>
-                <th>Likes</th>
-                <th>Comments</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-/* ========= CONFIG ========= */
-const API_BASE = "http://127.0.0.1:8000"; // keep backend running
-let currentData = []; // filtered results shown in table
-let viewsChart, likesChart, commentsChart;
+const apiBase = "https://youtube-dashboard-4lst.onrender.com"; // Hosted backend URL
 
-/* ========== HELPERS ========== */
-function fmtNum(x){
-    if(x === null || x === undefined) return 0;
-    const n = Number(x);
-    if (isNaN(n)) return 0;
-    return n;
-}
+const viewsChart = new Chart(document.getElementById('viewsChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Views', data: [], borderColor: '#007bff', fill: false }] }, options: { responsive: true }});
+const likesChart = new Chart(document.getElementById('likesChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Likes', data: [], borderColor: '#28a745', fill: false }] }, options: { responsive: true }});
+const commentsChart = new Chart(document.getElementById('commentsChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Comments', data: [], borderColor: '#dc3545', fill: false }] }, options: { responsive: true }});
 
-function showLoading(on=true){
-    document.getElementById("loading").style.display = on ? "block" : "none";
-}
+document.getElementById('searchBtn').addEventListener('click', async () => {
+    const url = document.getElementById('channelUrl').value.trim();
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
 
-/* ========== MAIN: loadData() ========== */
-async function loadData(){
-    const url = document.getElementById("channelInput").value.trim();
-    const start = document.getElementById("startInput").value;
-    const end = document.getElementById("endInput").value;
-
-    if(!url || !start || !end){
-        alert("Please provide channel URL/ID/handle and both start & end dates.");
-        return;
-    }
-
-    showLoading(true);
-    clearUI();
+    if (!url || !start || !end) { alert("Enter all fields"); return; }
 
     try {
-        const apiUrl = `${API_BASE}/channel-stats?url=${encodeURIComponent(url)}&start=${start}&end=${end}`;
-        const res = await fetch(apiUrl);
-        if(!res.ok){
-            const txt = await res.text();
-            throw new Error(`API Error ${res.status}: ${txt}`);
-        }
+        const res = await fetch(`${apiBase}/channel-stats?url=${encodeURIComponent(url)}&start=${start}&end=${end}`);
+        if (!res.ok) { alert("Failed to fetch data"); return; }
         const data = await res.json();
+        if (!data.videos || data.videos.length === 0) { alert("No videos found"); return; }
 
-        // data.videos is expected array
-        if(!data.videos || !Array.isArray(data.videos) || data.videos.length === 0){
-            currentData = [];
-            updateTable();
-            showLoading(false);
-            document.getElementById("resultCount").innerText = 0;
-            return;
-        }
-
-        // Normalize numeric values to numbers
-        currentData = data.videos.map(v => ({
-            video_id: v.video_id,
-            title: v.title,
-            published: v.published,
-            views: fmtNum(v.views),
-            likes: fmtNum(v.likes),
-            comments: fmtNum(v.comments)
-        }));
-
-        // Update UI
-        document.getElementById("resultCount").innerText = currentData.length;
-        updateSummary();
-        updateTable();
-        drawAllCharts();
-    } catch (err) {
-        console.error(err);
-        alert("Failed to fetch data: " + err.message);
-    } finally {
-        showLoading(false);
-        // Load history after main data
-        loadHistory(url);
-    }
-}
-
-/* ========== Load History ========== */
-async function loadHistory(url) {
-    try {
-        const apiUrl = `${API_BASE}/channel-recent-history?url=${encodeURIComponent(url)}`;
-        const res = await fetch(apiUrl);
-        if (!res.ok) {
-            throw new Error(`API Error ${res.status}`);
-        }
-        const data = await res.json();
-        const tbody = document.querySelector("#historyTable tbody");
-        tbody.innerHTML = "";
-        if (!data.histories || data.histories.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a00;">No recent video history available</td></tr>`;
-            return;
-        }
-        data.histories.forEach(h => {
-            const titleTr = document.createElement("tr");
-            titleTr.innerHTML = `<td colspan="5" style="font-weight: bold; background: #f0f0f0;">${escapeHtml(h.title)} (Published: ${h.published}) - <a href="https://www.youtube.com/watch?v=${h.video_id}" target="_blank" rel="noopener">Watch</a></td>`;
-            tbody.appendChild(titleTr);
-            h.days.forEach(d => {
-                const stats = d.stats || {views: '-', likes: '-', comments: '-'};
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td></td>
-                    <td>${d.date}</td>
-                    <td>${stats.views}</td>
-                    <td>${stats.likes}</td>
-                    <td>${stats.comments}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+        const tbody = document.querySelector('#videoTable tbody');
+        tbody.innerHTML = '';
+        data.videos.forEach(v => {
+            const row = `<tr>
+                <td>${v.video_id}</td>
+                <td>${v.title}</td>
+                <td>${v.published.split('T')[0]}</td>
+                <td>${v.today.views}</td>
+                <td>${v.today.likes}</td>
+                <td>${v.today.comments}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
         });
+
+        // Prepare chart data
+        const labels = data.videos.map(v => v.title.substring(0, 15)+'...');
+        viewsChart.data.labels = labels;
+        viewsChart.data.datasets[0].data = data.videos.map(v => v.today.views);
+        viewsChart.update();
+
+        likesChart.data.labels = labels;
+        likesChart.data.datasets[0].data = data.videos.map(v => v.today.likes);
+        likesChart.update();
+
+        commentsChart.data.labels = labels;
+        commentsChart.data.datasets[0].data = data.videos.map(v => v.today.comments);
+        commentsChart.update();
+
     } catch (err) {
         console.error(err);
+        alert("Error fetching data from server.");
     }
-}
+});
 
-/* ========== UI UPDATE ========== */
-function clearUI(){
-    currentData = [];
-    document.getElementById("resultCount").innerText = 0;
-    document.getElementById("totalVideos").innerText = 0;
-    document.getElementById("totalViews").innerText = 0;
-    document.getElementById("totalLikes").innerText = 0;
-    document.getElementById("totalComments").innerText = 0;
-    document.querySelector("#videosTable tbody").innerHTML = "";
-    document.querySelector("#historyTable tbody").innerHTML = "";
-    destroyCharts();
-}
-
-function updateSummary(){
-    const totalVideos = currentData.length;
-    const totalViews = currentData.reduce((s, r) => s + r.views, 0);
-    const totalLikes = currentData.reduce((s, r) => s + r.likes, 0);
-    const totalComments = currentData.reduce((s, r) => s + r.comments, 0);
-
-    document.getElementById("totalVideos").innerText = totalVideos;
-    document.getElementById("totalViews").innerText = totalViews;
-    document.getElementById("totalLikes").innerText = totalLikes;
-    document.getElementById("totalComments").innerText = totalComments;
-}
-
-/* ========== Table ========== */
-function updateTable(){
-    const tbody = document.querySelector("#videosTable tbody");
-    tbody.innerHTML = "";
-    if(currentData.length === 0){
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#a00;">No videos found for chosen range</td></tr>`;
-        return;
-    }
-
-    currentData.forEach(r => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td><a href="https://www.youtube.com/watch?v=${r.video_id}" target="_blank" rel="noopener">${r.video_id}</a></td>
-            <td>${escapeHtml(r.title)}</td>
-            <td>${r.published ? r.published.substring(0,10) : ""}</td>
-            <td>${r.views}</td>
-            <td>${r.likes}</td>
-            <td>${r.comments}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-/* ========== Charts ========== */
-function destroyCharts(){
-    if(viewsChart) { viewsChart.destroy(); viewsChart = null; }
-    if(likesChart) { likesChart.destroy(); likesChart = null; }
-    if(commentsChart) { commentsChart.destroy(); commentsChart = null; }
-}
-
-function drawAllCharts(){
-    destroyCharts();
-    const labels = currentData.map(r => truncate(r.title, 30));
-    const views = currentData.map(r => r.views);
-    const likes = currentData.map(r => r.likes);
-    const comments = currentData.map(r => r.comments);
-
-    // Views chart
-    const ctxV = document.getElementById('viewsChart').getContext('2d');
-    viewsChart = new Chart(ctxV, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{ label: 'Views', data: views, backgroundColor:'rgba(0,115,255,0.8)' }]
-        },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
-    });
-
-    // Likes chart
-    const ctxL = document.getElementById('likesChart').getContext('2d');
-    likesChart = new Chart(ctxL, {
-        type: 'bar',
-        data: { labels, datasets: [{ label:'Likes', data:likes, backgroundColor:'rgba(34,163,92,0.85)' }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
-    });
-
-    // Comments chart
-    const ctxC = document.getElementById('commentsChart').getContext('2d');
-    commentsChart = new Chart(ctxC, {
-        type: 'line',
-        data: { labels, datasets: [{ label:'Comments', data:comments, fill:false, borderColor:'rgba(255,99,71,0.85)' }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
-    });
-
-    // Give charts a fixed visual height
-    document.getElementById('viewsChart').parentElement.style.height = '260px';
-    document.getElementById('likesChart').parentElement.style.height = '260px';
-    document.getElementById('commentsChart').parentElement.style.height = '320px';
-}
-
-/* ========== EXPORT (SheetJS) ========== */
-function exportExcel(){
-    if(!currentData || currentData.length === 0){
-        alert("No data to export.");
-        return;
-    }
-
-    // Prepare worksheet data (header + rows)
-    const wsData = [
-        ["Video ID","Title","Published","Views","Likes","Comments"]
-    ];
-
-    currentData.forEach(r => {
-        wsData.push([r.video_id, r.title, r.published ? r.published.substring(0,10) : "", r.views, r.likes, r.comments]);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, "Videos");
-
-    // File name with channel handle and date
-    const ch = (document.getElementById("channelInput").value || "channel").replace(/[:\/\\\?\*"<>\|]+/g,"_");
-    const start = document.getElementById("startInput").value;
-    const end = document.getElementById("endInput").value;
-    const filename = `${ch}_${start}_to_${end}.xlsx`;
-
-    XLSX.writeFile(wb, filename);
-}
-
-/* ========== UTILITIES ========== */
-function truncate(s, n=30){ return s.length>n ? s.slice(0,n-1)+"…" : s; }
-function escapeHtml(text){ if(!text) return ""; return text.replace(/[&<>"']/g, (m)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-/* ========== STARTUP: set sensible default dates ========== */
-(function init(){
-    // set default start = 2025-01-01 and end = today's date
-    const end = new Date();
-    const y = end.getFullYear(), m = String(end.getMonth()+1).padStart(2,'0'), d = String(end.getDate()).padStart(2,'0');
-    const endStr = `${y}-${m}-${d}`;
-    const startStr = `2025-01-01`;
-    document.getElementById("startInput").value = startStr;
-    document.getElementById("endInput").value = endStr;
-})();
-
+// Export table to Excel
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const table = document.getElementById('videoTable');
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Videos" });
+    XLSX.writeFile(wb, "youtube_channel_data.xlsx");
+});
 </script>
 </body>
 </html>
