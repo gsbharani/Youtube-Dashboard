@@ -280,44 +280,143 @@ function destroyCharts(){
 
 function drawAllCharts(){
     destroyCharts();
-    const labels = currentData.map(r => truncate(r.title, 30));
-    const views = currentData.map(r => r.views);
-    const likes = currentData.map(r => r.likes);
-    const comments = currentData.map(r => r.comments);
 
-    // Views chart
-    const ctxV = document.getElementById('viewsChart').getContext('2d');
-    viewsChart = new Chart(ctxV, {
+    // Sort by date
+    const sorted = [...currentData].sort((a, b) => a.published.localeCompare(b.published));
+
+    // X-axis: formatted dates
+    const labels = sorted.map(v => {
+        const d = new Date(v.published);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const views = sorted.map(v => v.views);
+    const likes = sorted.map(v => v.likes);
+    const comments = sorted.map(v => v.comments);
+
+    // Helper: truncate long titles on hover
+    const truncateTitle = (title) => title.length > 50 ? title.slice(0,47) + "..." : title;
+
+    // === Views Chart ===
+    viewsChart = new Chart(document.getElementById('viewsChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Views',
+                data: views,
+                borderColor: '#0073ff',
+                backgroundColor: 'rgba(0,115,255,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Views Over Time', font: { size: 16 } },
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const idx = tooltipItems[0].dataIndex;
+                            return sorted[idx].title; // Full video title on hover
+                        },
+                        label: function(context) {
+                            return `Views: ${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Published Date' } },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // === Likes Chart ===
+    likesChart = new Chart(document.getElementById('likesChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Likes',
+                data: likes,
+                borderColor: '#16a34a',
+                backgroundColor: 'rgba(22,163,74,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Likes Over Time', font: { size: 16 } },
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const idx = tooltipItems[0].dataIndex;
+                            return truncateTitle(sorted[idx].title);
+                        },
+                        label: function(context) {
+                            return `Likes: ${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Published Date' } },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // === Comments Chart ===
+    commentsChart = new Chart(document.getElementById('commentsChart').getContext('2d'), {
         type: 'bar',
         data: {
-            labels,
-            datasets: [{ label: 'Views', data: views, backgroundColor:'rgba(0,115,255,0.8)' }]
+            labels: labels,
+            datasets: [{
+                label: 'Comments',
+                data: comments,
+                backgroundColor: 'rgba(239,68,68,0.8)',
+                borderColor: '#ef4444'
+            }]
         },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Comments Over Time', font: { size: 16 } },
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const idx = tooltipItems[0].dataIndex;
+                            return truncateTitle(sorted[idx].title);
+                        },
+                        label: function(context) {
+                            return `Comments: ${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Published Date' } },
+                y: { beginAtZero: true }
+            }
+        }
     });
 
-    // Likes chart
-    const ctxL = document.getElementById('likesChart').getContext('2d');
-    likesChart = new Chart(ctxL, {
-        type: 'bar',
-        data: { labels, datasets: [{ label:'Likes', data:likes, backgroundColor:'rgba(34,163,92,0.85)' }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
-    });
-
-    // Comments chart
-    const ctxC = document.getElementById('commentsChart').getContext('2d');
-    commentsChart = new Chart(ctxC, {
-        type: 'line',
-        data: { labels, datasets: [{ label:'Comments', data:comments, fill:false, borderColor:'rgba(255,99,71,0.85)' }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
-    });
-
-    // Give charts a fixed visual height
-    document.getElementById('viewsChart').parentElement.style.height = '260px';
-    document.getElementById('likesChart').parentElement.style.height = '260px';
-    document.getElementById('commentsChart').parentElement.style.height = '320px';
+    // Set height
+    document.querySelectorAll('.chart-card').forEach(c => c.style.height = '340px');
 }
-
+  
 /* ========== EXPORT (SheetJS) ========== */
 function exportExcel(){
     if(!currentData || currentData.length === 0){
@@ -365,4 +464,5 @@ function escapeHtml(text){ if(!text) return ""; return text.replace(/[&<>"']/g, 
 </script>
 </body>
 </html>
+
 
