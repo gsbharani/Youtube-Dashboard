@@ -15,6 +15,7 @@ redis = Redis(
 
 app = FastAPI()
 
+# Allow any origin for hosted frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,6 +24,7 @@ app.add_middleware(
 )
 
 def get_channel_id(input_str: str) -> str | None:
+    """Extracts channel ID from URL, handle, or @username."""
     if input_str.startswith("UC") and len(input_str) > 20:
         return input_str
     if "channel/" in input_str:
@@ -42,11 +44,13 @@ def get_channel_id(input_str: str) -> str | None:
         return None
 
 def yt(url: str) -> Dict[Any, Any]:
+    """Simple GET wrapper to return JSON."""
     return requests.get(url).json()
 
-# ———————— MAIN: All videos in date range (your original feature) ————————
+
 @app.get("/channel-stats")
 def channel_stats(url: str, start: str, end: str):
+    """Returns all videos in a date range with stats."""
     channel_id = get_channel_id(url)
     if not channel_id:
         return {"error": "Channel not found"}
@@ -87,9 +91,10 @@ def channel_stats(url: str, start: str, end: str):
             })
     return {"videos": stats}
 
-# ———————— NEW: Last 7 videos + daily history ————————
+
 @app.get("/channel-recent-history")
 def channel_recent_history(url: str):
+    """Returns last 7 videos + daily history per video (up to 7 days)."""
     channel_id = get_channel_id(url)
     if not channel_id:
         return {"error": "Channel not found"}
@@ -100,7 +105,7 @@ def channel_recent_history(url: str):
     except:
         return {"error": "No uploads playlist"}
 
-    # Get last 7 videos (most recent first)
+    # Last 7 videos
     pl = yt(
         f"https://www.googleapis.com/youtube/v3/playlistItems?"
         f"part=snippet&maxResults=7&playlistId={uploads_playlist}&key={API_KEY}"
@@ -118,7 +123,7 @@ def channel_recent_history(url: str):
             "published": published,
         }
 
-    # Save today’s snapshot (this builds the history over time)
+    # Save today's snapshot (builds history over time)
     if video_ids:
         batch = ",".join(video_ids)
         today = date.today().isoformat()
@@ -147,7 +152,7 @@ def channel_recent_history(url: str):
             ds = d.isoformat()
             days.append({
                 "date": ds,
-                "stats": history.get(ds)  # None if no snapshot yet
+                "stats": history.get(ds, {"views": 0, "likes": 0, "comments": 0})
             })
 
         histories.append({
@@ -159,8 +164,19 @@ def channel_recent_history(url: str):
 
     return {"histories": histories}
 
+
+@app.get("/", response_class=HTMLResponse)
+def home():
+    """Serve the HTML directly."""
+    try:
+        with open("index.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h3>index.html not found. Upload the file to the backend folder.</h3>"
+
 # Optional: serve the HTML directly so you don’t have to open file manually
 @app.get("/", response_class=HTMLResponse)
 def home():
     with open("index.html", encoding="utf-8") as f:
+
         return f.read()
