@@ -1,5 +1,5 @@
 fastapi
-uvicorn
-google-api-python-client
-requests
-python-dotenv
+uvicorn[standard]
+gunicorn
+pydantic
+python-multipart
