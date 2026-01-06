@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from upstash_redis import Redis
 from typing import Dict, Any
 
-API_KEY = "AIzaSyDCkvkJWMhOT2nICAnCdo5Ir1t10Pk1rZQ"
+API_KEY = "AIzaSyCi1tZBBhnB-s_WYkwd-YHylClvdJXrOgY"
 
 redis = Redis(
     url="https://resolved-marmot-14333.upstash.io",
@@ -164,6 +164,7 @@ def channel_recent_history(url: str):
 def home():
     with open("index.html", encoding="utf-8") as f:
         return f.read()
+
 
 
 
